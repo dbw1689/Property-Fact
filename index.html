@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Property Portfolio Manager</title>
+    <!-- Stable fallback script distribution network -->
+    <script src="https://unpkg.com"></script>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --success: #16a34a;
+            --success-hover: #15803d;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #334155;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.5;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+        .hidden { display: none !important; }
+
+        .panel {
+            background: var(--card-bg);
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+            margin-bottom: 25px;
+        }
+
+        .auth-container {
+            max-width: 400px;
+            margin: 100px auto 0 auto;
+        }
+
+        h1, h2 { color: var(--primary); margin-top: 0; }
+        h1 { font-size: 1.75rem; margin-bottom: 5px; }
+        h2 { font-size: 1.25rem; margin-bottom: 15px; }
+        
+        .subtitle { color: #64748b; margin-bottom: 25px; margin-top: 0; }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--primary);
+            font-size: 0.85rem;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 0.95rem;
+            background-color: #fff;
+        }
+
+        .header-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 15px;
+            border-top: 1px solid var(--border);
+            padding-top: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            border: none;
+            transition: background 0.2s;
+        }
+
+        .btn-add { background-color: var(--accent); color: white; flex: 2; }
+        .btn-add:hover { background-color: var(--accent-hover); }
+        .btn-export { background-color: var(--success); color: white; flex: 1; }
+        .btn-export:hover { background-color: var(--success-hover); }
+        .btn-logout { background-color: #e2e8f0; color: #475569; padding: 8px 15px; font-size: 0.85rem; }
+        .btn-logout:hover { background-color: #cbd5e1; }
+        .btn-login { background-color: var(--accent); color: white; width: 100%; margin-top: 10px; }
+        .btn-login:hover { background-color: var(--accent-hover); }
+
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.85rem; }
+        th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        th { background-color: #f1f5f9; color: var(--primary); }
+        .empty-msg { text-align: center; color: #94a3b8; padding: 30px; font-style: italic; }
+        .btn-delete { background: none; color: var(--danger); border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- SCREEN 1: LOGIN MODULE -->
+    <!-- Direct native call stops the submit re-routing dead in its tracks -->
+    <div id="authScreen" class="panel auth-container">
+        <h2>Portfolio Vault Login</h2>
+        <p class="subtitle">Log in to view properties.</p>
+        <form onsubmit="executeAppLogin(event)">
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" id="loginEmail" placeholder="your@email.com" required>
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="loginPassword" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn-login">Unlock Dashboard</button>
+        </form>
+    </div>
+
+    <!-- SCREEN 2: ACTIVE REPOSITORY TRACKER -->
+    <div id="appScreen" class="hidden">
+        <div class="header-actions">
+            <div>
+                <h1>Global Property Portfolio</h1>
+                <p class="subtitle" style="margin-bottom:0;">Live Cloud Session Securely Connected</p>
+            </div>
+            <button type="button" class="btn-logout" onclick="handleLogout()">Log Out</button>
+        </div>
+
+        <div class="panel">
+            <h2>Add New Asset Specifications</h2>
+            <form id="propertyForm">
+                <div class="form-group">
+                    <label for="address">Property Address</label>
+                    <input type="text" id="address" placeholder="e.g., 123 Main Street" required>
+                </div>
+
+                <div class="grid-3">
+                    <div class="form-group"><label for="yearBuilt">Year Built</label><input type="text" id="yearBuilt"></div>
+                    <div class="form-group"><label for="structure">Structure</label><input type="text" id="structure"></div>
+                    <div class="form-group"><label for="siding">Siding</label><input type="text" id="siding"></div>
+                    <div class="form-group"><label for="roofYear">Roof Replaced Year</label><input type="text" id="roofYear"></div>
+                    <div class="form-group"><label for="waterTank">Age of Hot Water Tank</label><input type="text" id="waterTank"></div>
+                    <div class="form-group"><label for="furnace">Age of Furnace</label><input type="text" id="furnace"></div>
+                    <div class="form-group"><label for="wireType">Type of Wire</label><input type="text" id="wireType"></div>
+                    <div class="form-group"><label for="amp">Electricity Amp</label><input type="text" id="amp"></div>
+                    <div class="form-group"><label for="plumbing">Plumbing</label><input type="text" id="plumbing"></div>
+                    
+                    <div class="form-group">
+                        <label for="reducerValve">Water Reducer Valve</label>
+                        <select id="reducerValve"><option>Yes</option><option>No</option><option>Unknown</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sumpPump">Sump Pump</label>
+                        <select id="sumpPump"><option>Yes</option><option>No</option><option>Yes (with Backup)</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="backflow">Back Flow Valve</label>
+                        <select id="backflow"><option>Yes</option><option>No</option><option>Unknown</option></select>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button type="button" class="btn-add" onclick="addPropertyToCloud()">+ Save to Cloud Database</button>
+                    <button type="button" class="btn-export" onclick="exportToExcelCSV()">💾 Export Master Excel File</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="panel">
+            <h2>Live Property Sheet Rows</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Action</th><th>Address</th><th>Year Built</th><th>Structure</th><th>Siding</th><th>Roof Replaced</th>
+                            <th>Water Tank Age</th><th>Furnace Age</th><th>Wire Type</th><th>Amp</th>
+                            <th>Plumbing</th><th>Reducer Valve</th><th>Sump Pump</th><th>Backflow Valve</th>
+                        </tr>
+                    </thead>
+                    <tbody id="propertyTableBody">
+                        <tr><td colspan="14" class="empty-msg">Fetching authorized infrastructure data rows...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// !!! PASTE YOUR CONFIGURATIONS CAREFULLY BETWEEN THE QUOTES !!!
+const my_project_url = "https://fameesbxihdoddusuibx.supabase.co"; 
+const my_publishable_key = "sb_publishable_xBHTzfp-7OCb3Cg_OXs72Q_8u2svYjC"; 
+
+// FIX: Renamed 'supabase' to 'db' to prevent the initialization crash
+const supabase = supabase.createClient(my_project_url, my_publishable_key);
+let globalPortfolio = [];
+
+// Automated Session Router Listener
+db.auth.onAuthStateChange((event, session) => {
+    if (session) {
+        document.getElementById('authScreen').classList.add('hidden');
+        document.getElementById('appScreen').classList.remove('hidden');
+        fetchPropertiesFromCloud();
+    } else {
+        document.getElementById('authScreen').classList.remove('hidden');
+        document.getElementById('appScreen').classList.add('hidden');
+    }
+});
+
+async function executeAppLogin(e) {
+    e.preventDefault(); 
+    
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+
+    try {
+        const { data, error } = await db.auth.signInWithPassword({ email, password });
+        
+        if (error) {
+            alert("Login Failed: " + error.message);
+        } else {
+            alert("Success! Access Vault Unlocked.");
+        }
+    } catch (err) {
+        alert("System network link issue: " + err.message);
+    }
+}
+
+async function handleLogout() {
+    await db.auth.signOut();
+}
+
+async function fetchPropertiesFromCloud() {
+    const { data, error } = await db.from('properties').select('*');
+    if (error) {
+        console.error("Database connection error:", error);
+        return;
+    }
+    globalPortfolio = data;
+    renderTable();
+}
+
+async function addPropertyToCloud() {
+    const addressField = document.getElementById('address');
+    if (!addressField.value.trim()) {
+        alert("Please enter a Property Address.");
+        return;
+    }
+
+    const newRecord = {
+        address: addressField.value,
+        year_built: document.getElementById('yearBuilt').value || 'N/A',
+        structure: document.getElementById('structure').value || 'N/A',
+        siding: document.getElementById('siding').value || 'N/A',
+        roof_year: document.getElementById('roofYear').value || 'N/A',
+        water_tank: document.getElementById('waterTank').value || 'N/A',
+        furnace: document.getElementById('furnace').value || 'N/A',
+        wire_type: document.getElementById('wireType').value || 'N/A',
+        amp: document.getElementById('amp').value || 'N/A',
+        plumbing: document.getElementById('plumbing').value || 'N/A',
+        reducer_valve: document.getElementById('reducerValve').value,
+        sump_pump: document.getElementById('sumpPump').value,
+        backflow: document.getElementById('backflow').value
+    };
+
+    const { error } = await db.from('properties').insert([newRecord]);
+    if (error) {
+        alert("Error saving record: " + error.message);
+    } else {
+        document.getElementById('propertyForm').reset();
+        await fetchPropertiesFromCloud();
+    }
+}
+
+async function deletePropertyFromCloud(id) {
+    if (confirm("Are you sure you want to permanently delete this row from the cloud?")) {
+        const { error } = await db.from('properties').delete().eq('id', id);
+        if (error) {
+            alert("Error deleting record.");
+        } else {
+            await fetchPropertiesFromCloud();
+        }
+    }
+}
+
+</body>
+</html>
