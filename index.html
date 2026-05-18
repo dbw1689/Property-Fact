@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Global Property Portfolio Manager</title>
-    <!-- Stable fallback script distribution network -->
-    <script src="https://unpkg.com"></script>
+    
+    <!-- Local file reference completely bypasses external network firewall blocks -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --primary: #0f172a;
@@ -13,6 +15,8 @@
             --accent-hover: #1d4ed8;
             --success: #16a34a;
             --success-hover: #15803d;
+            --warning: #ea580c;
+            --warning-hover: #c2410c;
             --danger: #dc2626;
             --bg: #f8fafc;
             --card-bg: #ffffff;
@@ -100,6 +104,10 @@
 
         .btn-add { background-color: var(--accent); color: white; flex: 2; }
         .btn-add:hover { background-color: var(--accent-hover); }
+        .btn-update { background-color: var(--warning); color: white; flex: 2; }
+        .btn-update:hover { background-color: var(--warning-hover); }
+        .btn-clear { background-color: #e2e8f0; color: #475569; flex: 1; }
+        .btn-clear:hover { background-color: #cbd5e1; }
         .btn-export { background-color: var(--success); color: white; flex: 1; }
         .btn-export:hover { background-color: var(--success-hover); }
         .btn-logout { background-color: #e2e8f0; color: #475569; padding: 8px 15px; font-size: 0.85rem; }
@@ -112,17 +120,19 @@
         th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
         th { background-color: #f1f5f9; color: var(--primary); }
         .empty-msg { text-align: center; color: #94a3b8; padding: 30px; font-style: italic; }
-        .btn-delete { background: none; color: var(--danger); border: none; cursor: pointer; }
+        
+        /* Interactive edit row handles styled boldly */
+        .btn-inline-edit { background-color: #eff6ff; color: var(--accent); border: 1px solid #bfdbfe; font-weight: bold; padding: 4px 12px; border-radius: 4px; }
+        .btn-inline-edit:hover { background-color: #dbeafe; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- SCREEN 1: LOGIN MODULE -->
-    <!-- Direct native call stops the submit re-routing dead in its tracks -->
+    <!-- SCREEN 1: LOGIN FORM GATE -->
     <div id="authScreen" class="panel auth-container">
         <h2>Portfolio Vault Login</h2>
-        <p class="subtitle">Log in to view properties.</p>
+        <p class="subtitle">Enter credentials to unlock dashboard.</p>
         <form onsubmit="executeAppLogin(event)">
             <div class="form-group">
                 <label>Email Address</label>
@@ -136,7 +146,7 @@
         </form>
     </div>
 
-    <!-- SCREEN 2: ACTIVE REPOSITORY TRACKER -->
+    <!-- SCREEN 2: MANAGEMENT PORTAL CONTAINER -->
     <div id="appScreen" class="hidden">
         <div class="header-actions">
             <div>
@@ -147,8 +157,10 @@
         </div>
 
         <div class="panel">
-            <h2>Add New Asset Specifications</h2>
+            <h2 id="formTitle">Add New Asset Specifications</h2>
             <form id="propertyForm">
+                <input type="hidden" id="editingId" value="">
+
                 <div class="form-group">
                     <label for="address">Property Address</label>
                     <input type="text" id="address" placeholder="e.g., 123 Main Street" required>
@@ -180,7 +192,9 @@
                 </div>
 
                 <div class="action-buttons">
-                    <button type="button" class="btn-add" onclick="addPropertyToCloud()">+ Save to Cloud Database</button>
+                    <button type="button" id="saveButton" class="btn-add" onclick="addPropertyToCloud()">+ Save to Cloud Database</button>
+                    <button type="button" id="updateButton" class="btn-update hidden" onclick="updatePropertyInCloud()">💾 Push Updates to Cloud</button>
+                    <button type="button" class="btn-clear" onclick="resetFormState()">Clear Form</button>
                     <button type="button" class="btn-export" onclick="exportToExcelCSV()">💾 Export Master Excel File</button>
                 </div>
             </form>
@@ -198,7 +212,7 @@
                         </tr>
                     </thead>
                     <tbody id="propertyTableBody">
-                        <tr><td colspan="14" class="empty-msg">Fetching authorized infrastructure data rows...</td></tr>
+                        <tr><td colspan="14" class="empty-msg">Fetching cloud data rows...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -207,68 +221,157 @@
 </div>
 
 <script>
-// !!! PASTE YOUR CONFIGURATIONS CAREFULLY BETWEEN THE QUOTES !!!
-const my_project_url = "https://fameesbxihdoddusuibx.supabase.co"; 
-const my_publishable_key = "sb_publishable_xBHTzfp-7OCb3Cg_OXs72Q_8u2svYjC"; 
-
-// FIX: Renamed 'supabase' to 'db' to prevent the initialization crash
-const supabase = supabase.createClient(my_project_url, my_publishable_key);
+// 1. DATA LAYOUT HOLES
 let globalPortfolio = [];
+const targetUrlString = "https://fameesbxihdoddusuibx.supabase.co"; 
+const publishableKeyString = "sb_publishable_xBHTzfp-7OCb3Cg_OXs72Q_8u2svYjC"; 
 
-// Automated Session Router Listener
-db.auth.onAuthStateChange((event, session) => {
-    if (session) {
-        document.getElementById('authScreen').classList.add('hidden');
-        document.getElementById('appScreen').classList.remove('hidden');
-        fetchPropertiesFromCloud();
-    } else {
-        document.getElementById('authScreen').classList.remove('hidden');
-        document.getElementById('appScreen').classList.add('hidden');
+// 2. RUN TIMELINE SYSTEM CHECKS ONCE DOM CONTENT STABILIZES
+document.addEventListener("DOMContentLoaded", function() {
+    if (!window.supabase || !window.supabase.createClient) {
+        console.error("Critical Error: Local file 'supabase.js' could not be read or executed.");
+        return;
     }
+
+    window.myGlobalDatabase = window.supabase.createClient(targetUrlString, publishableKeyString);
+
+    window.myGlobalDatabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('appScreen').classList.remove('hidden');
+            fetchPropertiesFromCloud();
+        } else {
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('appScreen').classList.add('hidden');
+        }
+    });
 });
 
+// 3. CORE SECURE ACTION ROUTER METHODS
 async function executeAppLogin(e) {
     e.preventDefault(); 
+    if (!window.myGlobalDatabase) { alert("Initialization error. Check supabase.js file case naming."); return; }
     
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+    const emailStr = document.getElementById('loginEmail').value;
+    const passwordStr = document.getElementById('loginPassword').value;
 
     try {
-        const { data, error } = await db.auth.signInWithPassword({ email, password });
-        
-        if (error) {
-            alert("Login Failed: " + error.message);
-        } else {
-            alert("Success! Access Vault Unlocked.");
-        }
+        const { error } = await window.myGlobalDatabase.auth.signInWithPassword({ email: emailStr, password: passwordStr });
+        if (error) alert("Login Failed: " + error.message);
     } catch (err) {
-        alert("System network link issue: " + err.message);
+        alert("System Processing Error: " + err.message);
     }
 }
 
 async function handleLogout() {
-    await db.auth.signOut();
+    await window.myGlobalDatabase.auth.signOut();
 }
 
 async function fetchPropertiesFromCloud() {
-    const { data, error } = await db.from('properties').select('*');
-    if (error) {
-        console.error("Database connection error:", error);
-        return;
+    try {
+        const { data, error } = await window.myGlobalDatabase.from('properties').select('*');
+        if (error) { console.error(error.message); return; }
+        globalPortfolio = data || [];
+        renderTable();
+    } catch (err) {
+        console.error(err.message);
     }
-    globalPortfolio = data;
-    renderTable();
 }
 
 async function addPropertyToCloud() {
     const addressField = document.getElementById('address');
-    if (!addressField.value.trim()) {
-        alert("Please enter a Property Address.");
+    if (!addressField.value.trim()) { alert("Please enter a Property Address."); return; }
+
+    const newRecord = gatherFormPayloadValues();
+
+    const { error } = await window.myGlobalDatabase.from('properties').insert([newRecord]);
+    if (error) {
+        alert("Error saving record: " + error.message);
+    } else {
+        resetFormState();
+        await fetchPropertiesFromCloud();
+    }
+}
+
+// ACTION TRIGGER: Pulls matching spreadsheet specs right back up into cards
+function populateFormForEdit(id) {
+    const propertyToEdit = globalPortfolio.find(item => item.id === id);
+    if (!propertyToEdit) return;
+
+    document.getElementById('editingId').value = propertyToEdit.id;
+    document.getElementById('address').value = propertyToEdit.address;
+    document.getElementById('yearBuilt').value = propertyToEdit.year_built;
+    document.getElementById('structure').value = propertyToEdit.structure;
+    document.getElementById('siding').value = propertyToEdit.siding;
+    document.getElementById('roofYear').value = propertyToEdit.roof_year;
+    document.getElementById('waterTank').value = propertyToEdit.water_tank;
+    document.getElementById('furnace').value = propertyToEdit.furnace;
+    document.getElementById('wireType').value = propertyToEdit.wire_type;
+    document.getElementById('amp').value = propertyToEdit.amp;
+    document.getElementById('plumbing').value = propertyToEdit.plumbing;
+    document.getElementById('reducerValve').value = propertyToEdit.reducer_valve;
+    document.getElementById('sumpPump').value = propertyToEdit.sump_pump;
+    document.getElementById('backflow').value = propertyToEdit.backflow;
+
+    document.getElementById('formTitle').innerText = "✏️ Editing Specs: " + propertyToEdit.address;
+    document.getElementById('saveButton').classList.add('hidden');
+    document.getElementById('updateButton').classList.remove('hidden');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function updatePropertyInCloud() {
+    const recordId = document.getElementById('editingId').value;
+    const addressField = document.getElementById('address');
+
+    if (!addressField.value.trim() || !recordId) { alert("Missing property row identifier mapping fields."); return; }
+
+    const updatedData = gatherFormPayloadValues();
+
+    const { error } = await window.myGlobalDatabase.from('properties').update(updatedData).eq('id', recordId);
+
+    if (error) {
+        alert("Update Operation Rejected: " + error.message);
+    } else {
+        alert("Property updates successfully synchronized to database row!");
+        resetFormState();
+        await fetchPropertiesFromCloud();
+    }
+}
+
+function renderTable() {
+    const tbody = document.getElementById('propertyTableBody');
+    if (globalPortfolio.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="14" class="empty-msg">No property assets stored in your cloud vault yet.</td></tr>`;
         return;
     }
 
-    const newRecord = {
-        address: addressField.value,
+    tbody.innerHTML = globalPortfolio.map(prop => `
+        <tr>
+            <td>
+                <!-- Streamlined standalone edit row action handler toggle -->
+                <button class="btn-inline-edit" onclick="populateFormForEdit(${prop.id})">Edit</button>
+            </td>
+            <td><strong>${escapeHtml(prop.address)}</strong></td>
+            <td>${escapeHtml(prop.year_built)}</td>
+            <td>${escapeHtml(prop.structure)}</td>
+            <td>${escapeHtml(prop.siding)}</td>
+            <td>${escapeHtml(prop.roof_year)}</td>
+            <td>${escapeHtml(prop.water_tank)}</td>
+            <td>${escapeHtml(prop.furnace)}</td>
+            <td>${escapeHtml(prop.wire_type)}</td>
+            <td>${escapeHtml(prop.amp)}</td>
+            <td>${escapeHtml(prop.plumbing)}</td>
+            <td>${escapeHtml(prop.reducer_valve)}</td>
+            <td>${escapeHtml(prop.sump_pump)}</td>
+            <td>${escapeHtml(prop.backflow)}</td>
+        </tr>
+    `).join('');
+}
+
+function gatherFormPayloadValues() {
+    return {
+        address: document.getElementById('address').value,
         year_built: document.getElementById('yearBuilt').value || 'N/A',
         structure: document.getElementById('structure').value || 'N/A',
         siding: document.getElementById('siding').value || 'N/A',
@@ -282,26 +385,47 @@ async function addPropertyToCloud() {
         sump_pump: document.getElementById('sumpPump').value,
         backflow: document.getElementById('backflow').value
     };
-
-    const { error } = await db.from('properties').insert([newRecord]);
-    if (error) {
-        alert("Error saving record: " + error.message);
-    } else {
-        document.getElementById('propertyForm').reset();
-        await fetchPropertiesFromCloud();
-    }
 }
 
-async function deletePropertyFromCloud(id) {
-    if (confirm("Are you sure you want to permanently delete this row from the cloud?")) {
-        const { error } = await db.from('properties').delete().eq('id', id);
-        if (error) {
-            alert("Error deleting record.");
-        } else {
-            await fetchPropertiesFromCloud();
-        }
-    }
+function resetFormState() {
+    document.getElementById('propertyForm').reset();
+    document.getElementById('editingId').value = "";
+    document.getElementById('formTitle').innerText = "Add New Asset Specifications";
+    document.getElementById('saveButton').classList.remove('hidden');
+    document.getElementById('updateButton').classList.add('hidden');
 }
+
+function exportToExcelCSV() {
+    if (globalPortfolio.length === 0) { alert("No data available to export."); return; }
+
+    const dataHeaders = [
+        "Property Address", "Year Built", "Structure", "Siding", "Roof Replaced Year",
+        "Age of Hot Water Tank", "Age of Furnace", "Type of Wire", "Electricity Amp",
+        "Plumbing", "Water Reducer Valve", "Sump Pump", "Back Flow Valve"
+    ];
+
+    const dataRows = globalPortfolio.map(p => [
+        `"${p.address.replace(/"/g, '""')}"`, `"${p.year_built}"`, `"${p.structure.replace(/"/g, '""')}"`,
+        `"${p.siding.replace(/"/g, '""')}"`, `"${p.roof_year}"`, `"${p.water_tank.replace(/"/g, '""')}"`,
+        `"${p.furnace.replace(/"/g, '""')}"`, `"${p.wire_type.replace(/"/g, '""')}"`, `"${p.amp.replace(/"/g, '""')}"`,
+        `"${p.plumbing.replace(/"/g, '""')}"`, `"${p.reducer_valve}"`, `"${p.sump_pump}"`, `"${p.backflow}"`
+    ].join(","));
+
+    const csvContent = "\uFEFF" + [dataHeaders.join(","), ...dataRows].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.download = "vault_property_portfolio.csv";
+    link.href = URL.createObjectURL(blob);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.toString().replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+</script>
 
 </body>
 </html>
