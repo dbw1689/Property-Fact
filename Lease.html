@@ -3,328 +3,424 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Property & Lease Management Dashboard</title>
+    <title>Lease Management System</title>
+    
+    <!-- Using unpkg exactly as requested -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+
+    
     <style>
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #f4f7f6; padding: 20px; color: #333; }
-        .container { max-width: 1150px; margin: 0 auto; }
-        h2 { text-align: center; color: #2c3e50; }
-
-        /* Form styling */
-        .form-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px; }
-        .form-group { display: flex; flex-direction: column; }
-        label { font-weight: 600; margin-bottom: 5px; font-size: 0.9em; color: #555; }
-        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
-        input:focus { border-color: #3498db; outline: none; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f6f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #111;
+            margin-bottom: 20px;
+        }
+        .panel {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+        }
+        .debug-console {
+            background-color: #fcedec;
+            border: 1px solid #f5c2c2;
+            color: #a81c1c;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+        .debug-console.success {
+            background-color: #edf7ed;
+            border: 1px solid #c3e6cb;
+            color: #1e4620;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 4px;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .actions {
+            text-align: right;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-save { background-color: #0056b3; color: white; }
+        .btn-cancel { background-color: #6c757d; color: white; margin-right: 8px; }
         
-        /* Buttons */
-        .button-group { display: flex; gap: 10px; }
-        button { padding: 10px 15px; border: none; border-radius: 4px; font-size: 0.95em; cursor: pointer; transition: background 0.2s; }
-        .btn-save { background-color: #2ecc71; color: white; }
-        .btn-save:hover { background-color: #27ae60; }
-        .btn-clear { background-color: #95a5a6; color: white; }
-        .btn-clear:hover { background-color: #7f8c8d; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+            color: #444;
+            font-weight: bold;
+        }
+        .active-hdr { color: #28a745; border-bottom: 2px solid #28a745; }
+        .expired-hdr { color: #dc3545; border-bottom: 2px solid #dc3545; }
         
-        .actions-cell { display: flex; gap: 5px; }
-        .btn-edit { background-color: #3498db; color: white; padding: 5px 10px; font-size: 0.85em; }
-        .btn-edit:hover { background-color: #2980b9; }
-        .btn-renew { background-color: #f39c12; color: white; padding: 5px 10px; font-size: 0.85em; }
-        .btn-renew:hover { background-color: #d35400; }
-        .btn-delete { background-color: #e74c3c; color: white; padding: 5px 10px; font-size: 0.85em; }
-        .btn-delete:hover { background-color: #c0392b; }
-
-        /* Tables */
-        .table-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h3 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
-        th { background-color: #f8f9fa; font-weight: 600; color: #555; cursor: pointer; }
-        th:hover { background-color: #e9ecef; }
-        tbody tr:hover { background-color: #f1f4f6; }
-        .expired-row { background-color: #fae1df !important; opacity: 0.85; }
+        .link-btn {
+            background: none;
+            border: none;
+            padding: 0;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .lnk-renew { color: #28a745; }
+        .lnk-edit { color: #0056b3; }
+        .lnk-delete { color: #dc3545; }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>Lease & Property Manager</h2>
+    <div class="container">
+        <h1>Lease Management Dashboard</h1>
 
-    <!-- Add/Edit Form -->
-    <div class="form-card">
-        <h3 id="form-title">Add New Lease</h3>
-        <form id="lease-form">
-            <input type="hidden" id="edit-index">
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="property">Property Name/Address</label>
-                    <input type="text" id="property" required>
+        <!-- System Log Status Window -->
+        <div id="debug-log" class="debug-console">Connecting to your database application...</div>
+
+        <!-- Input Panel -->
+        <div class="panel">
+            <h2 id="form-title" style="margin-top:0; font-size:18px;">Add New Lease</h2>
+            <form id="lease-form">
+                <input type="hidden" id="lease-id">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Property</label>
+                        <input type="text" id="property" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Tenant Name</label>
+                        <input type="text" id="tenant" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Telephone</label>
+                        <input type="tel" id="telephone" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Lease Start</label>
+                        <input type="date" id="lease-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Lease End</label>
+                        <input type="date" id="lease-end" required>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="tenant">Tenant Name</label>
-                    <input type="text" id="tenant" required>
+                <div class="actions">
+                    <button type="button" id="cancel-btn" class="btn-cancel hidden">Cancel</button>
+                    <button type="submit" class="btn-save">Save Lease</button>
                 </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="telephone">Telephone</label>
-                    <input type="tel" id="telephone" required>
-                </div>
-                <div class="form-group">
-                    <label for="start">Lease Start</label>
-                    <input type="date" id="start" required>
-                </div>
-                <div class="form-group">
-                    <label for="end">Lease End (Can override)</label>
-                    <input type="date" id="end" required>
-                </div>
-            </div>
-            <div class="button-group">
-                <button type="submit" class="btn-save" id="save-btn">Save Lease</button>
-                <button type="button" class="btn-clear" onclick="clearForm()">Clear Fields</button>
-            </div>
-        </form>
+            </form>
+        </div>
+
+        <!-- Active Grid -->
+        <div class="panel">
+            <h2 class="active-hdr" style="margin-top:0; font-size:18px; padding-bottom:6px;">Active Leases</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Tenant</th>
+                        <th>Email</th>
+                        <th>Telephone</th>
+                        <th>Lease Start</th>
+                        <th>Lease End</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="active-list"></tbody>
+            </table>
+        </div>
+
+        <!-- Expired Grid (Read-Only Layout) -->
+        <div class="panel">
+            <h2 class="expired-hdr" style="margin-top:0; font-size:18px; padding-bottom:6px;">Expired Leases Archive</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Property</th>
+                        <th>Tenant</th>
+                        <th>Email</th>
+                        <th>Telephone</th>
+                        <th>Lease Start</th>
+                        <th>Lease End</th>
+                    </tr>
+                </thead>
+                <tbody id="expired-list"></tbody>
+            </table>
+        </div>
     </div>
 
-    <!-- Active Leases Table -->
-    <div class="table-card">
-        <h3>Active Leases</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="sortActiveTable('property')">Property</th>
-                    <th onclick="sortActiveTable('tenant')">Tenant</th>
-                    <th onclick="sortActiveTable('email')">Email</th>
-                    <th onclick="sortActiveTable('telephone')">Telephone</th>
-                    <th onclick="sortActiveTable('start')">Lease Start</th>
-                    <th onclick="sortActiveTable('end')">Lease End</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="active-leases-body">
-                <!-- Active leases will populate here -->
-            </tbody>
-        </table>
-    </div>
+    <script>
+        const SUPABASE_URL = "https://rcardcimqinnukytxrly.supabase.co";
+        const SUPABASE_ANON_KEY = "sb_publishable_b1czOslbmsyywK8BrBe5KQ_EBKQREfm"; 
 
-    <!-- Expired Leases Table -->
-    <div class="table-card">
-        <h3>Expired Leases</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th onclick="sortExpiredTable('property')">Property</th>
-                    <th onclick="sortExpiredTable('tenant')">Tenant</th>
-                    <th onclick="sortExpiredTable('email')">Email</th>
-                    <th onclick="sortExpiredTable('telephone')">Telephone</th>
-                    <th onclick="sortExpiredTable('start')">Lease Start</th>
-                    <th onclick="sortExpiredTable('end')">Lease End</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody id="expired-leases-body" class="expired-tbody">
-                <!-- Expired leases will populate here -->
-            </tbody>
-        </table>
-    </div>
-</div>
+        const debugLog = document.getElementById('debug-log');
+        let supabaseClient;
+        let leaseRecordsCache = [];
 
-<script>
-    // Local memory state
-    let leases = [];
-
-    // Sorting state
-    let activeSortCol = 'property';
-    let activeSortAsc = true;
-    let expiredSortCol = 'property';
-    let expiredSortAsc = true;
-
-    // Initialize UI listeners
-    document.addEventListener("DOMContentLoaded", () => {
-        renderTables();
-
-        // Automated default generation (Still allows user text override)
-        document.getElementById('start').addEventListener('change', function() {
-            if (this.value) {
-                document.getElementById('end').value = calculateOneYearLater(this.value);
+        // Safe setup checking for global library parameters
+        try {
+            if (typeof window.supabase === 'undefined') {
+                throw new Error("Supabase library script failed to download.");
             }
-        });
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            setSystemStatus("Connected. Reading records...", true);
+        } catch (initErr) {
+            setSystemStatus("Engine Launch Aborted: " + initErr.message, false);
+        }
 
-        // Event interception for save mechanics
-        document.getElementById('lease-form').addEventListener('submit', (e) => {
+        const form = document.getElementById('lease-form');
+        const activeList = document.getElementById('active-list');
+        const expiredList = document.getElementById('expired-list');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        form.addEventListener('submit', saveLease);
+        cancelBtn.addEventListener('click', resetForm);
+
+	// Auto-set Lease End to exactly 1 year from Lease Start
+	document.getElementById('lease-start').addEventListener('input', (e) => {
+    if (!e.target.value) return;
+    const startDate = new Date(e.target.value);
+    startDate.setFullYear(startDate.getFullYear() + 1);
+    document.getElementById('lease-end').value = startDate.toISOString().split('T')[0];
+});
+
+        
+        if (supabaseClient) {
+            fetchLeases();
+        }
+
+        function setSystemStatus(text, isSuccess) {
+            debugLog.innerText = text;
+            if(isSuccess) {
+                debugLog.className = "debug-console success";
+            } else {
+                debugLog.className = "debug-console";
+            }
+        }
+
+        async function fetchLeases() {
+            try {
+                const { data: leases, error } = await supabaseClient
+                    .from('leases')
+                    .select('*')
+                    .order('lease_end', { ascending: true });
+
+                if (error) throw error;
+
+                leaseRecordsCache = leases || [];
+                activeList.innerHTML = '';
+                expiredList.innerHTML = '';
+                const today = new Date().toISOString().split('T')[0];
+
+                leaseRecordsCache.forEach(lease => {
+                    const isExpired = lease.lease_end < today;
+                    const row = document.createElement('tr');
+                    
+                    // Bulletproof Native DOM Node Text Assignments to avoid breaking strings
+                    const tdProp = document.createElement('td');
+                    const strongProp = document.createElement('strong');
+                    strongProp.innerText = lease.property || '';
+                    tdProp.appendChild(strongProp);
+
+                    const tdTenant = document.createElement('td');
+                    tdTenant.innerText = lease.tenant || '';
+
+                    const tdEmail = document.createElement('td');
+                    tdEmail.innerText = lease.email || '';
+
+                    const tdTel = document.createElement('td');
+                    tdTel.innerText = lease.telephone || '';
+
+                    const tdStart = document.createElement('td');
+                    tdStart.innerText = lease.lease_start || '';
+
+                    const tdEnd = document.createElement('td');
+                    tdEnd.innerText = lease.lease_end || '';
+
+                    row.appendChild(tdProp);
+                    row.appendChild(tdTenant);
+                    row.appendChild(tdEmail);
+                    row.appendChild(tdTel);
+                    row.appendChild(tdStart);
+                    row.appendChild(tdEnd);
+
+                    if (isExpired) {
+                        // Expired table rendering (strictly read-only)
+                        expiredList.appendChild(row);
+                    } else {
+                        // Active table rendering with action buttons linked safely by ID lookup
+                        const tdActions = document.createElement('td');
+                        
+                        const btnRenew = document.createElement('button');
+                        btnRenew.className = "link-btn lnk-renew";
+                        btnRenew.innerText = "Renew";
+                        btnRenew.onclick = () => window.renewLease(lease.id);
+
+                        const btnEdit = document.createElement('button');
+                        btnEdit.className = "link-btn lnk-edit";
+                        btnEdit.innerText = "Edit";
+                        btnEdit.onclick = () => window.editLease(lease.id);
+
+                        const btnDelete = document.createElement('button');
+                        btnDelete.className = "link-btn lnk-delete";
+                        btnDelete.innerText = "Delete";
+                        btnDelete.onclick = () => window.deleteLease(lease.id);
+
+                        tdActions.appendChild(btnRenew);
+                        tdActions.appendChild(btnEdit);
+                        tdActions.appendChild(btnDelete);
+                        row.appendChild(tdActions);
+                        
+                        activeList.appendChild(row);
+                    }
+                });
+                
+                setSystemStatus(`Success! Synced with Supabase. Loaded ${leases.length} lease records.`, true);
+            } catch (err) {
+                setSystemStatus('Database Sync Interrupted: ' + err.message, false);
+            }
+        }
+
+        async function saveLease(e) {
             e.preventDefault();
-            saveLease();
-        });
-    });
+            setSystemStatus("Writing lease profile details...", true);
+            
+            const id = document.getElementById('lease-id').value;
+            const payload = {
+                property: document.getElementById('property').value,
+                tenant: document.getElementById('tenant').value,
+                email: document.getElementById('email').value,
+                telephone: document.getElementById('telephone').value,
+                lease_start: document.getElementById('lease-start').value,
+                lease_end: document.getElementById('lease-end').value
+            };
 
-    // Date computation offset framework
-    function calculateOneYearLater(startDateString) {
-        let startDate = new Date(startDateString + 'T00:00:00');
-        startDate.setFullYear(startDate.getFullYear() + 1);
-        let year = startDate.getFullYear();
-        let month = String(startDate.getMonth() + 1).padStart(2, '0');
-        let day = String(startDate.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    }
+            try {
+                let error;
+                if (id) {
+                    ({ error } = await supabaseClient.from('leases').update(payload).eq('id', id));
+                } else {
+                    ({ error } = await supabaseClient.from('leases').insert([payload]));
+                }
 
-    // Process submission array push/alterations
-    function saveLease() {
-        const editIndex = document.getElementById('edit-index').value;
-        const leaseData = {
-            property: document.getElementById('property').value,
-            tenant: document.getElementById('tenant').value,
-            email: document.getElementById('email').value,
-            telephone: document.getElementById('telephone').value,
-            start: document.getElementById('start').value,
-            end: document.getElementById('end').value
+                if (error) throw error;
+
+                resetForm();
+                await fetchLeases();
+            } catch (err) {
+                setSystemStatus('Database Write Error: ' + err.message, false);
+            }
+        }
+
+        window.editLease = function(id) {
+            const lease = leaseRecordsCache.find(r => r.id === id);
+            if (!lease) return;
+
+            document.getElementById('form-title').innerText = "Edit Lease";
+            document.getElementById('lease-id').value = lease.id;
+            document.getElementById('property').value = lease.property || '';
+            document.getElementById('tenant').value = lease.tenant || '';
+            document.getElementById('email').value = lease.email || '';
+            document.getElementById('telephone').value = lease.telephone || '';
+            document.getElementById('lease-start').value = lease.lease_start || '';
+            document.getElementById('lease-end').value = lease.lease_end || '';
+            cancelBtn.classList.remove('hidden');
         };
 
-        if (editIndex === "") {
-            leases.push(leaseData);
-        } else {
-            leases[editIndex] = leaseData;
+        window.renewLease = async function(id) {
+            const lease = leaseRecordsCache.find(r => r.id === id);
+            if (!lease) return;
+
+            try {
+                setSystemStatus("Extending lease agreement timeline...", true);
+                const currentEndDate = new Date(lease.lease_end);
+                const nextStart = new Date(currentEndDate.getTime() + 86400000).toISOString().split('T')[0];
+                currentEndDate.setFullYear(currentEndDate.getFullYear() + 1);
+                const nextEnd = currentEndDate.toISOString().split('T')[0];
+
+                const { error } = await supabaseClient
+                    .from('leases')
+                    .update({ lease_start: nextStart, lease_end: nextEnd })
+                    .eq('id', id);
+
+                if (error) throw error;
+                await fetchLeases();
+            } catch (err) {
+                setSystemStatus('Renewal Action Failed: ' + err.message, false);
+            }
+        };
+
+        window.deleteLease = async function(id) {
+            if (confirm('Permanently delete this active lease?')) {
+                try {
+                    setSystemStatus("Deleting lease table listing...", true);
+                    const { error } = await supabaseClient.from('leases').delete().eq('id', id);
+                    if (error) throw error;
+                    await fetchLeases();
+                } catch (err) {
+                    setSystemStatus('Deletion Action Interrupted: ' + err.message, false);
+                }
+            }
+        };
+
+        function resetForm() {
+            document.getElementById('form-title').innerText = "Add New Lease";
+            form.reset();
+            document.getElementById('lease-id').value = '';
+            cancelBtn.classList.add('hidden');
         }
-
-        clearForm();
-        renderTables();
-    }
-
-    // Populate data back up into structural inputs
-    function editLease(index) {
-        const lease = leases[index];
-        document.getElementById('edit-index').value = index;
-        document.getElementById('property').value = lease.property;
-        document.getElementById('tenant').value = lease.tenant;
-        document.getElementById('email').value = lease.email;
-        document.getElementById('telephone').value = lease.telephone;
-        document.getElementById('start').value = lease.start;
-        document.getElementById('end').value = lease.end;
-
-        document.getElementById('form-title').innerText = "Edit Lease";
-        document.getElementById('save-btn').innerText = "Update Lease";
-    }
-
-    // Automation step to shift date range forward safely
-    function renewLease(index) {
-        const lease = leases[index];
-        const newStart = lease.end;
-        const newEnd = calculateOneYearLater(newStart);
-        
-        leases[index].start = newStart;
-        leases[index].end = newEnd;
-        
-        renderTables();
-    }
-
-    // Delete item completely from master storage array
-    function deleteLease(index) {
-        if (confirm("Are you sure you want to permanently delete this lease record?")) {
-            leases.splice(index, 1);
-            clearForm();
-            renderTables();
-        }
-    }
-
-    // Form resetting utilities
-    function clearForm() {
-        document.getElementById('lease-form').reset();
-        document.getElementById('edit-index').value = "";
-        document.getElementById('form-title').innerText = "Add New Lease";
-        document.getElementById('save-btn').innerText = "Save Lease";
-    }
-
-    // Dynamic processing and view updating engine
-    function renderTables() {
-        const today = new Date().toISOString().split('T')[0];
-        
-        let activeLeases = leases.filter(l => l.end >= today);
-        let expiredLeases = leases.filter(l => l.end < today);
-
-        // Alpha sorting logic: Active entries
-        activeLeases.sort((a, b) => {
-            let valA = a[activeSortCol].toLowerCase();
-            let valB = b[activeSortCol].toLowerCase();
-            if(valA < valB) return activeSortAsc ? -1 : 1;
-            if(valA > valB) return activeSortAsc ? 1 : -1;
-            return 0;
-        });
-
-        // Alpha sorting logic: Expired entries (Stays locked on Property)
-        expiredLeases.sort((a, b) => {
-            let valA = a[expiredSortCol].toLowerCase();
-            let valB = b[expiredSortCol].toLowerCase();
-            if (valA < valB) return expiredSortAsc ? -1 : 1;
-            if (valA > valB) return expiredSortAsc ? 1 : -1;
-            return 0;
-        });
-
-        // HTML generation structural output target loops
-        const activeTbody = document.getElementById('active-leases-body');
-        activeTbody.innerHTML = '';
-        activeLeases.forEach((lease) => {
-            let origIndex = leases.findIndex(l => l === lease);
-            activeTbody.innerHTML += `
-                <tr>
-                    <td>${lease.property}</td>
-                    <td>${lease.tenant}</td>
-                    <td>${lease.email}</td>
-                    <td>${lease.telephone}</td>
-                    <td>${lease.start}</td>
-                    <td>${lease.end}</td>
-                    <td>
-                        <div class="actions-cell">
-                            <button class="btn-edit" onclick="editLease(${origIndex})">Edit</button>
-                            <button class="btn-renew" onclick="renewLease(${origIndex})">Renew</button>
-                            <button class="btn-delete" onclick="deleteLease(${origIndex})">Delete</button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-
-        const expiredTbody = document.getElementById('expired-leases-body');
-        expiredTbody.innerHTML = '';
-        expiredLeases.forEach(lease => {
-            let origIndex = leases.findIndex(l => l === lease);
-            expiredTbody.innerHTML += `
-                <tr class="expired-row">
-                    <td>${lease.property}</td>
-                    <td>${lease.tenant}</td>
-                    <td>${lease.email}</td>
-                    <td>${lease.telephone}</td>
-                    <td>${lease.start}</td>
-                    <td>${lease.end}</td>
-                    <td>
-                        
-                    </td>
-                </tr>
-            `;
-        });
-    }
-
-    // Header interactive sorting switches
-    function sortActiveTable(col) {
-        if (activeSortCol === col) {
-            activeSortAsc = !activeSortAsc;
-        } else {
-            activeSortCol = col;
-            activeSortAsc = true;
-        }
-        renderTables();
-    }
-
-    function sortExpiredTable(col) {
-        if (expiredSortCol === col) {
-            expiredSortAsc = !expiredSortAsc;
-        } else {
-            expiredSortCol = col;
-            expiredSortAsc = true;
-        }
-        renderTables();
-    }
-</script>
-
+    </script>
 </body>
 </html>
