@@ -3,355 +3,330 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tenant & Property Directory</title>
-    <script src="https://tailwindcss.com"></script>
+    <title>Property & Lease Management Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f7f6; padding: 20px; color: #333; }
+        .container { max-width: 1150px; margin: 0 auto; }
+        h2 { text-align: center; color: #2c3e50; }
+
+        /* Form styling */
+        .form-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 0.9em; color: #555; }
+        input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.95em; }
+        input:focus { border-color: #3498db; outline: none; }
+        
+        /* Buttons */
+        .button-group { display: flex; gap: 10px; }
+        button { padding: 10px 15px; border: none; border-radius: 4px; font-size: 0.95em; cursor: pointer; transition: background 0.2s; }
+        .btn-save { background-color: #2ecc71; color: white; }
+        .btn-save:hover { background-color: #27ae60; }
+        .btn-clear { background-color: #95a5a6; color: white; }
+        .btn-clear:hover { background-color: #7f8c8d; }
+        
+        .actions-cell { display: flex; gap: 5px; }
+        .btn-edit { background-color: #3498db; color: white; padding: 5px 10px; font-size: 0.85em; }
+        .btn-edit:hover { background-color: #2980b9; }
+        .btn-renew { background-color: #f39c12; color: white; padding: 5px 10px; font-size: 0.85em; }
+        .btn-renew:hover { background-color: #d35400; }
+        .btn-delete { background-color: #e74c3c; color: white; padding: 5px 10px; font-size: 0.85em; }
+        .btn-delete:hover { background-color: #c0392b; }
+
+        /* Tables */
+        .table-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h3 { color: #2c3e50; margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; font-weight: 600; color: #555; cursor: pointer; }
+        th:hover { background-color: #e9ecef; }
+        tbody tr:hover { background-color: #f1f4f6; }
+        .expired-row { background-color: #fae1df !important; opacity: 0.85; }
+    </style>
 </head>
-<!-- Soft, muted blue-gray background -->
-<body class="bg-slate-100 p-4 font-sans text-slate-800 min-h-screen">
+<body>
 
-    <!-- ========================================== -->
-    <!-- TABLE 1: ACTIVE LEASES & NEW DATA ENTRY   -->
-    <!-- ========================================== -->
-    <div class="max-w-[90rem] mx-auto bg-white p-4 rounded-xl shadow-md border border-slate-200/80">
-        <h2 class="text-base font-bold text-slate-700 mb-3 px-1">Active Portfolio & Entry (Sorted by End Date ↑)</h2>
-        
-        <div class="overflow-x-auto rounded-lg">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead class="bg-slate-50">
-                    <tr>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[18%]">Property</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[18%]">Tenant Name</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[16%]">Email Address</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[12%]">Phone Number</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[11%]">Lease Start</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[11%]">Lease End ↑</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-600 w-[14%]">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-slate-50/50">
-                    <!-- Embedded Input Form Row Directly Below Table Line Headers -->
-                    <tr>
-                        <td colspan="7" class="p-2 vertical-align-middle">
-                            <form id="tenantForm" class="flex items-center gap-2 whitespace-nowrap w-full">
-                                <input type="hidden" id="tenantId">
-                                
-                                <input type="text" id="propertyName" placeholder="Property Address / Unit" 
-                                    class="w-[18%] text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
+<div class="container">
+    <h2>Lease & Property Manager</h2>
 
-                                <input type="text" id="tenantName" placeholder="Tenant Name" required 
-                                    class="w-[18%] text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
-                                
-                                <input type="email" id="tenantEmail" placeholder="tenant@email.com" 
-                                    class="w-[16%] text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
-
-                                <input type="tel" id="tenantPhone" placeholder="(555) 555-5555" 
-                                    class="w-[12%] text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
-
-                                <input type="date" id="leaseStart" required 
-                                    class="w-[130px] shrink-0 text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
-                                
-                                <span class="text-xs text-slate-400 font-medium px-0.5 self-center">to</span>
-                                
-                                <input type="date" id="leaseEnd" required 
-                                    class="w-[130px] shrink-0 text-sm rounded-md border-slate-300 shadow-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500 p-2 border bg-white">
-                                
-                                <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 shadow-xs shrink-0 self-center">
-                                    + Add
-                                </button>
-                                <button type="button" id="cancelBtn" class="hidden bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-medium py-2 px-3 rounded-md transition duration-150 shrink-0 self-center">
-                                    Cancel
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                </tbody>
-                <!-- Active Tenant Data Rows -->
-                <tbody id="activeTableBody" class="divide-y divide-slate-100 bg-white">
-                    <!-- Active rows rendered here -->
-                </tbody>
-            </table>
-        </div>
+    <!-- Add/Edit Form -->
+    <div class="form-card">
+        <h3 id="form-title">Add New Lease</h3>
+        <form id="lease-form">
+            <input type="hidden" id="edit-index">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="property">Property Name/Address</label>
+                    <input type="text" id="property" required>
+                </div>
+                <div class="form-group">
+                    <label for="tenant">Tenant Name</label>
+                    <input type="text" id="tenant" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="telephone">Telephone</label>
+                    <input type="tel" id="telephone" required>
+                </div>
+                <div class="form-group">
+                    <label for="start">Lease Start</label>
+                    <input type="date" id="start" required>
+                </div>
+                <div class="form-group">
+                    <label for="end">Lease End (Can override)</label>
+                    <input type="date" id="end" required>
+                </div>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn-save" id="save-btn">Save Lease</button>
+                <button type="button" class="btn-clear" onclick="clearForm()">Clear Fields</button>
+            </div>
+        </form>
     </div>
 
-
-    <!-- ========================================== -->
-    <!-- MASSIVE SEPARATION GAP & SEPARATE CARD     -->
-    <!-- ========================================== -->
-    <div class="max-w-[90rem] mx-auto mt-40 bg-white p-4 rounded-xl shadow-sm border border-slate-200/80">
-        
-        <div class="flex items-center justify-between mb-3 px-1">
-            <h2 class="text-base font-bold text-slate-500 uppercase tracking-wider select-none">Expired History Archive (Sorted Alphabetically by Property A-Z)</h2>
-            <span id="archiveCount" class="text-xs font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded">0 Items</span>
-        </div>
-
-        <!-- TABLE 2: EXPIRED LEASES ONLY -->
-        <div class="overflow-x-auto rounded-lg border border-slate-100 bg-slate-50/40">
-            <table class="min-w-full divide-y divide-slate-200 text-sm">
-                <thead>
-                    <tr class="bg-slate-100/80">
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[18%]">Property A-Z ↑</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[18%]">Tenant Name</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[16%]">Email Address</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[12%]">Phone Number</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[11%]">Lease Start</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[11%]">Lease End</th>
-                        <th class="px-3 py-2 text-left font-semibold text-slate-500 w-[14%]">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="expiredTableBody" class="divide-y divide-slate-200/60">
-                    <!-- Expired rows rendered here -->
-                </tbody>
-            </table>
-        </div>
+    <!-- Active Leases Table -->
+    <div class="table-card">
+        <h3>Active Leases</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sortActiveTable('property')">Property</th>
+                    <th onclick="sortActiveTable('tenant')">Tenant</th>
+                    <th onclick="sortActiveTable('email')">Email</th>
+                    <th onclick="sortActiveTable('telephone')">Telephone</th>
+                    <th onclick="sortActiveTable('start')">Lease Start</th>
+                    <th onclick="sortActiveTable('end')">Lease End</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="active-leases-body">
+                <!-- Active leases will populate here -->
+            </tbody>
+        </table>
     </div>
 
-    <script>
-        const tenantForm = document.getElementById('tenantForm');
-        const tenantIdInput = document.getElementById('tenantId');
-        const propertyNameInput = document.getElementById('propertyName');
-        const tenantNameInput = document.getElementById('tenantName');
-        const tenantEmailInput = document.getElementById('tenantEmail');
-        const tenantPhoneInput = document.getElementById('tenantPhone');
-        const leaseStartInput = document.getElementById('leaseStart');
-        const leaseEndInput = document.getElementById('leaseEnd');
-        const submitBtn = document.getElementById('submitBtn');
-        const cancelBtn = document.getElementById('cancelBtn');
-        const activeTableBody = document.getElementById('activeTableBody');
-        const expiredTableBody = document.getElementById('expiredTableBody');
-        const archiveCount = document.getElementById('archiveCount');
+    <!-- Expired Leases Table -->
+    <div class="table-card">
+        <h3>Expired Leases</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sortExpiredTable('property')">Property</th>
+                    <th onclick="sortExpiredTable('tenant')">Tenant</th>
+                    <th onclick="sortExpiredTable('email')">Email</th>
+                    <th onclick="sortExpiredTable('telephone')">Telephone</th>
+                    <th onclick="sortExpiredTable('start')">Lease Start</th>
+                    <th onclick="sortExpiredTable('end')">Lease End</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="expired-leases-body" class="expired-tbody">
+                <!-- Expired leases will populate here -->
+            </tbody>
+        </table>
+    </div>
+</div>
 
-        let tenants = JSON.parse(localStorage.getItem('web_tenants')) || [];
+<script>
+    // Local memory state
+    let leases = [];
 
-        function formatDateString(dateObj) {
-            const yyyy = dateObj.getFullYear();
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        }
+    // Sorting state
+    let activeSortCol = 'property';
+    let activeSortAsc = true;
+    let expiredSortCol = 'property';
+    let expiredSortAsc = true;
 
-        leaseStartInput.addEventListener('change', () => {
-            if (!leaseStartInput.value) return;
-            const startDate = new Date(leaseStartInput.value);
-            startDate.setFullYear(startDate.getFullYear() + 1);
-            startDate.setDate(startDate.getDate() - 1); 
-            leaseEndInput.value = formatDateString(startDate);
+    // Initialize UI listeners
+    document.addEventListener("DOMContentLoaded", () => {
+        renderTables();
+
+        // Automated default generation (Still allows user text override)
+        document.getElementById('start').addEventListener('change', function() {
+            if (this.value) {
+                document.getElementById('end').value = calculateOneYearLater(this.value);
+            }
         });
 
-        function checkLeaseStatus(endDateStr) {
-            const today = new Date();
-            const endDate = new Date(endDateStr);
-            const timeDiff = endDate.getTime() - today.getTime();
-            const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24));
-            const monthsDiff = daysDiff / 30.44;
-
-            if (monthsDiff <= 0) return { isExpired: true, label: 'Expired', css: 'bg-red-50 text-red-700 border border-red-100' };
-            if (monthsDiff <= 1) return { label: '1 Month Left', css: 'bg-orange-50 text-orange-700 border border-orange-100 animate-pulse', triggerEmail: true, months: 1 };
-            if (monthsDiff <= 2) return { label: '2 Months Left', css: 'bg-amber-50 text-amber-700 border border-amber-100', triggerEmail: true, months: 2 };
-            if (monthsDiff <= 3) return { label: '3 Months Left', css: 'bg-yellow-50 text-yellow-700 border border-yellow-100', triggerEmail: true, months: 3 };
-            
-            return { label: 'Active', css: 'text-slate-600' };
-        }
-
-        function generateMailtoLink(toEmail, name, endDateStr, monthsLeft) {
-            const subject = encodeURIComponent(`Lease Renewal Notice - ${name}`);
-            const body = encodeURIComponent(`Hello ${name},\r\n\r\nThis is an automated reminder that your lease is scheduled to end in ${monthsLeft} month(s) on ${endDateStr}.\r\n\r\nPlease let us know your renewal intentions at your earliest convenience.\r\n\r\nBest regards,\r\nProperty Management`);
-            return `mailto:${toEmail}?subject=${subject}&body=${body}`;
-        }
-
-        function renderTenants() {
-            activeTableBody.innerHTML = '';
-            expiredTableBody.innerHTML = '';
-            
-            let activeCount = 0;
-            let expiredCount = 0;
-
-            const activeLeases = tenants.filter(t => !checkLeaseStatus(t.leaseEnd).isExpired);
-            const expiredLeases = tenants.filter(t => checkLeaseStatus(t.leaseEnd).isExpired);
-
-            // Sort Active Leases by Lease End date ascending (closest first)
-            activeLeases.sort((a, b) => new Date(a.leaseEnd) - new Date(b.leaseEnd));
-
-            // Sort Expired Leases alphabetically by Property Address / Unit A-Z
-            expiredLeases.sort((a, b) => {
-                const propA = (a.property || '').trim().toLowerCase();
-                const propB = (b.property || '').trim().toLowerCase();
-                return propA.localeCompare(propB);
-            });
-
-            // Populate Active Table Card
-            activeLeases.forEach(tenant => {
-                const status = checkLeaseStatus(tenant.leaseEnd);
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-50/80 transition duration-75 whitespace-nowrap align-middle text-left";
-                
-                let emailButtonHtml = '';
-                if (status.triggerEmail && tenant.email) {
-                    const mailtoUrl = generateMailtoLink(tenant.email, tenant.name, tenant.leaseEnd, status.months);
-                    emailButtonHtml = `
-                        <a href="${mailtoUrl}" class="inline-flex items-center text-amber-700 hover:text-amber-900 font-medium text-xs bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded border border-amber-200 self-center">
-                            ✉ Remind ${status.months}M
-                        </a>
-                    `;
-                }
-
-                row.innerHTML = `
-                    <td class="px-3 py-2 font-medium text-slate-700 truncate max-w-[200px] align-middle text-left">${(tenant.property || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 font-medium text-slate-900 truncate max-w-[200px] align-middle text-left">${(tenant.name || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 truncate max-w-[220px] align-middle text-left">${(tenant.email || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 align-middle text-left">${(tenant.phone || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 align-middle text-left">${tenant.leaseStart || '&nbsp;'}</td>
-                    <td class="px-3 py-2 align-middle text-left">
-                        <span class="px-2 py-0.5 rounded font-medium inline-block ${status.css}">
-                            ${tenant.leaseEnd} 
-                            <span class="text-xs font-bold uppercase tracking-wider">${status.label !== 'Active' ? `(${status.label})` : ''}</span>
-                        </span>
-                    </td>
-                    <td class="px-3 py-2 align-middle text-left">
-                        <div class="inline-flex items-center gap-1 justify-start w-full">
-                            ${emailButtonHtml}
-                            <button type="button" onclick="renewLease('${tenant.property || ''}', '${tenant.name || ''}', '${tenant.email || ''}', '${tenant.phone || ''}', '${tenant.leaseEnd}')" class="text-emerald-700 hover:text-emerald-900 font-medium text-xs bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">🔄 Renew</button>
-                            <button type="button" onclick="editTenant('${tenant.id}')" class="text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded">Edit</button>
-                            <button type="button" onclick="deleteTenant('${tenant.id}')" class="text-red-600 hover:text-red-800 font-medium text-xs bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded">Delete</button>
-                        </div>
-                    </td>
-                `;
-                activeTableBody.appendChild(row);
-                activeCount++;
-            });
-
-            // Populate Separate Expired Archive Card
-            expiredLeases.forEach(tenant => {
-                const status = checkLeaseStatus(tenant.leaseEnd);
-                const row = document.createElement('tr');
-                row.className = "hover:bg-slate-200/50 transition duration-75 whitespace-nowrap align-middle opacity-60 bg-slate-50 text-left";
-                
-                row.innerHTML = `
-                    <td class="px-3 py-2 font-medium text-slate-700 truncate max-w-[200px] align-middle text-left">${(tenant.property || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 font-medium text-slate-900 truncate max-w-[200px] align-middle text-left">${(tenant.name || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 truncate max-w-[220px] align-middle text-left">${(tenant.email || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 align-middle text-left">${(tenant.phone || '').trim() || '&nbsp;'}</td>
-                    <td class="px-3 py-2 text-slate-600 align-middle text-left">${tenant.leaseStart || '&nbsp;'}</td>
-                    <td class="px-3 py-2 align-middle text-left">
-                        <span class="px-2 py-0.5 rounded font-medium inline-block ${status.css}">
-                            ${tenant.leaseEnd} 
-                            <span class="text-xs font-bold uppercase tracking-wider">[${status.label}]</span>
-                        </span>
-                    </td>
-                    <td class="px-3 py-2 align-middle text-left">
-                        <div class="inline-flex items-center gap-1 justify-start w-full">
-                            <button type="button" onclick="renewLease('${tenant.property || ''}', '${tenant.name || ''}', '${tenant.email || ''}', '${tenant.phone || ''}', '${tenant.leaseEnd}')" class="text-emerald-700 hover:text-emerald-900 font-medium text-xs bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200">🔄 Renew</button>
-                            <span class="text-xs font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-200 select-none">Locked History</span>
-                        </div>
-                    </td>
-                `;
-                expiredTableBody.appendChild(row);
-                expiredCount++;
-            });
-
-            archiveCount.textContent = `${expiredCount} Item(s)`;
-
-            if (activeCount === 0) {
-                activeTableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400 italic">No active leases recorded.</td></tr>`;
-            }
-            if (expiredCount === 0) {
-                expiredTableBody.innerHTML = `<tr><td colspan="7" class="px-4 py-4 text-center text-slate-400 italic">No expired historical leases.</td></tr>`;
-            }
-        }
-
-        function saveToStorage() {
-            localStorage.setItem('web_tenants', JSON.stringify(tenants));
-            renderTenants();
-        }
-
-        tenantForm.addEventListener('submit', (e) => {
+        // Event interception for save mechanics
+        document.getElementById('lease-form').addEventListener('submit', (e) => {
             e.preventDefault();
-            const id = tenantIdInput.value;
-            const tenantData = {
-                id: id || Date.now().toString(),
-                property: propertyNameInput.value.trim(),
-                name: tenantNameInput.value.trim(),
-                email: tenantEmailInput.value.trim(),
-                phone: tenantPhoneInput.value.trim(),
-                leaseStart: leaseStartInput.value,
-                leaseEnd: leaseEndInput.value
-            };
-
-            if (id) {
-                tenants = tenants.map(t => t.id === id ? tenantData : t);
-            } else {
-                tenants.push(tenantData);
-            }
-
-            resetForm();
-            saveToStorage();
+            saveLease();
         });
+    });
 
-        window.editTenant = function(id) {
-            const tenant = tenants.find(t => t.id === id);
-            if (!tenant) return;
+    // Date computation offset framework
+    function calculateOneYearLater(startDateString) {
+        let startDate = new Date(startDateString + 'T00:00:00');
+        startDate.setFullYear(startDate.getFullYear() + 1);
+        let year = startDate.getFullYear();
+        let month = String(startDate.getMonth() + 1).padStart(2, '0');
+        let day = String(startDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-            const status = checkLeaseStatus(tenant.leaseEnd);
-            if (status.isExpired) return;
-
-            tenantIdInput.value = tenant.id;
-            propertyNameInput.value = tenant.property || '';
-            tenantNameInput.value = tenant.name || '';
-            tenantEmailInput.value = tenant.email || '';
-            tenantPhoneInput.value = tenant.phone || '';
-            leaseStartInput.value = tenant.leaseStart;
-            leaseEndInput.value = tenant.leaseEnd;
-            
-            submitBtn.textContent = 'Update';
-            submitBtn.className = "bg-green-600 hover:bg-green-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 shadow-xs shrink-0 self-center";
-            cancelBtn.classList.remove('hidden');
-            propertyNameInput.focus();
+    // Process submission array push/alterations
+    function saveLease() {
+        const editIndex = document.getElementById('edit-index').value;
+        const leaseData = {
+            property: document.getElementById('property').value,
+            tenant: document.getElementById('tenant').value,
+            email: document.getElementById('email').value,
+            telephone: document.getElementById('telephone').value,
+            start: document.getElementById('start').value,
+            end: document.getElementById('end').value
         };
 
-        window.renewLease = function(property, name, email, phone, currentLeaseEndStr) {
-            resetForm();
-            const nextStart = new Date(currentLeaseEndStr);
-            nextStart.setDate(nextStart.getDate() + 1);
-
-            const nextEnd = new Date(nextStart);
-            nextEnd.setFullYear(nextEnd.getFullYear() + 1);
-            nextEnd.setDate(nextEnd.getDate() - 1);
-
-            propertyNameInput.value = property || '';
-            tenantNameInput.value = name || '';
-            tenantEmailInput.value = email || '';
-            tenantPhoneInput.value = phone || '';
-            leaseStartInput.value = formatDateString(nextStart);
-            leaseEndInput.value = formatDateString(nextEnd);
-
-            leaseStartInput.focus();
-        };
-
-        window.deleteTenant = function(id) {
-            if (confirm('Delete this tenant record?')) {
-                tenants = tenants.filter(t => t.id !== id);
-                if (tenantIdInput.value === id) resetForm();
-                saveToStorage();
-            }
-        };
-
-        function resetForm() {
-            tenantForm.reset();
-            tenantIdInput.value = '';
-            submitBtn.textContent = '+ Add';
-            submitBtn.className = "bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2 px-4 rounded-md transition duration-150 shadow-xs shrink-0 self-center";
-            cancelBtn.classList.add('hidden');
+        if (editIndex === "") {
+            leases.push(leaseData);
+        } else {
+            leases[editIndex] = leaseData;
         }
 
-        cancelBtn.addEventListener('click', resetForm);
-        renderTenants();
-// ===================================================
-// PASTE YOUR ACTUAL SUPABASE CREDENTIALS HERE
-// ===================================================
-const SUPABASE_URL = 'https://rcardcimqinnukytxrly.supabase.co'; 
-const SUPABASE_ANON_KEY = 'sb_publishable_b1czOslbmsyywK8BrBe5KQ_EBKQREfm'; 
+        clearForm();
+        renderTables();
+    }
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Populate data back up into structural inputs
+    function editLease(index) {
+        const lease = leases[index];
+        document.getElementById('edit-index').value = index;
+        document.getElementById('property').value = lease.property;
+        document.getElementById('tenant').value = lease.tenant;
+        document.getElementById('email').value = lease.email;
+        document.getElementById('telephone').value = lease.telephone;
+        document.getElementById('start').value = lease.start;
+        document.getElementById('end').value = lease.end;
 
-    </script>
+        document.getElementById('form-title').innerText = "Edit Lease";
+        document.getElementById('save-btn').innerText = "Update Lease";
+    }
+
+    // Automation step to shift date range forward safely
+    function renewLease(index) {
+        const lease = leases[index];
+        const newStart = lease.end;
+        const newEnd = calculateOneYearLater(newStart);
+        
+        leases[index].start = newStart;
+        leases[index].end = newEnd;
+        
+        renderTables();
+    }
+
+    // Delete item completely from master storage array
+    function deleteLease(index) {
+        if (confirm("Are you sure you want to permanently delete this lease record?")) {
+            leases.splice(index, 1);
+            clearForm();
+            renderTables();
+        }
+    }
+
+    // Form resetting utilities
+    function clearForm() {
+        document.getElementById('lease-form').reset();
+        document.getElementById('edit-index').value = "";
+        document.getElementById('form-title').innerText = "Add New Lease";
+        document.getElementById('save-btn').innerText = "Save Lease";
+    }
+
+    // Dynamic processing and view updating engine
+    function renderTables() {
+        const today = new Date().toISOString().split('T')[0];
+        
+        let activeLeases = leases.filter(l => l.end >= today);
+        let expiredLeases = leases.filter(l => l.end < today);
+
+        // Alpha sorting logic: Active entries
+        activeLeases.sort((a, b) => {
+            let valA = a[activeSortCol].toLowerCase();
+            let valB = b[activeSortCol].toLowerCase();
+            if(valA < valB) return activeSortAsc ? -1 : 1;
+            if(valA > valB) return activeSortAsc ? 1 : -1;
+            return 0;
+        });
+
+        // Alpha sorting logic: Expired entries (Stays locked on Property)
+        expiredLeases.sort((a, b) => {
+            let valA = a[expiredSortCol].toLowerCase();
+            let valB = b[expiredSortCol].toLowerCase();
+            if (valA < valB) return expiredSortAsc ? -1 : 1;
+            if (valA > valB) return expiredSortAsc ? 1 : -1;
+            return 0;
+        });
+
+        // HTML generation structural output target loops
+        const activeTbody = document.getElementById('active-leases-body');
+        activeTbody.innerHTML = '';
+        activeLeases.forEach((lease) => {
+            let origIndex = leases.findIndex(l => l === lease);
+            activeTbody.innerHTML += `
+                <tr>
+                    <td>${lease.property}</td>
+                    <td>${lease.tenant}</td>
+                    <td>${lease.email}</td>
+                    <td>${lease.telephone}</td>
+                    <td>${lease.start}</td>
+                    <td>${lease.end}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="btn-edit" onclick="editLease(${origIndex})">Edit</button>
+                            <button class="btn-renew" onclick="renewLease(${origIndex})">Renew</button>
+                            <button class="btn-delete" onclick="deleteLease(${origIndex})">Delete</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        const expiredTbody = document.getElementById('expired-leases-body');
+        expiredTbody.innerHTML = '';
+        expiredLeases.forEach(lease => {
+            let origIndex = leases.findIndex(l => l === lease);
+            expiredTbody.innerHTML += `
+                <tr class="expired-row">
+                    <td>${lease.property}</td>
+                    <td>${lease.tenant}</td>
+                    <td>${lease.email}</td>
+                    <td>${lease.telephone}</td>
+                    <td>${lease.start}</td>
+                    <td>${lease.end}</td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="btn-renew" onclick="renewLease(${origIndex})">Renew</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    // Header interactive sorting switches
+    function sortActiveTable(col) {
+        if (activeSortCol === col) {
+            activeSortAsc = !activeSortAsc;
+        } else {
+            activeSortCol = col;
+            activeSortAsc = true;
+        }
+        renderTables();
+    }
+
+    function sortExpiredTable(col) {
+        if (expiredSortCol === col) {
+            expiredSortAsc = !expiredSortAsc;
+        } else {
+            expiredSortCol = col;
+            expiredSortAsc = true;
+        }
+        renderTables();
+    }
+</script>
+
 </body>
 </html>
